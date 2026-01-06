@@ -128,6 +128,10 @@ func DefaultKeyMap() wig.ModeKeyMap {
 				"y": commands.CmdClipboardCopy,
 				"p": commands.CmdClipboardPaste,
 			},
+
+			"Enter":  wig.CmdBeginLineDown,
+			"ctrl+f": wig.CmdPageDown,
+			"ctrl+b": wig.CmdPageUp,
 		},
 		wig.MODE_VISUAL: wig.KeyMap{
 			"ctrl+e": wig.WithSelection(wig.CmdScrollDown),
@@ -157,6 +161,10 @@ func DefaultKeyMap() wig.ModeKeyMap {
 				"y": commands.CmdClipboardCopy,
 				"p": commands.CmdClipboardPaste,
 			},
+
+			"Enter":  wig.WithSelection(wig.CmdBeginLineDown),
+			"ctrl+f": wig.CmdPageDown,
+			"ctrl+b": wig.CmdPageUp,
 		},
 		wig.MODE_VISUAL_LINE: wig.KeyMap{
 			"ctrl+e": wig.CmdScrollDown,
@@ -178,6 +186,10 @@ func DefaultKeyMap() wig.ModeKeyMap {
 				"y": commands.CmdClipboardCopy,
 				"p": commands.CmdClipboardPaste,
 			},
+
+			"Enter":  wig.WithSelection(wig.CmdBeginLineDown),
+			"ctrl+f": wig.CmdPageDown,
+			"ctrl+b": wig.CmdPageUp,
 		},
 		wig.MODE_INSERT: wig.KeyMap{
 			"Esc":    wig.CmdExitInsertMode,
@@ -189,4 +201,3 @@ func DefaultKeyMap() wig.ModeKeyMap {
 		},
 	}
 }
-

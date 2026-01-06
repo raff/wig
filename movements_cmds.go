@@ -522,3 +522,21 @@ func CmdBufferCycle(ctx Context) {
 	ctx.Editor.ActiveWindow().ShowBuffer(b)
 }
 
+// New commands
+
+func CmdBeginLineDown(ctx Context) {
+	CmdCursorLineDown(ctx)
+	CmdCursorBeginningOfTheLine(ctx)
+}
+
+func CmdPageDown(ctx Context) {
+	_, h := ctx.Editor.View.Size()
+	ctx.Count = uint32(h)
+	CmdCursorLineDown(ctx)
+}
+
+func CmdPageUp(ctx Context) {
+	_, h := ctx.Editor.View.Size()
+	ctx.Count = uint32(h)
+	CmdCursorLineUp(ctx)
+}
