@@ -8,8 +8,8 @@ test:
 
 build:
 	export GOEXPERIMENT=greenteagc
-	go build cmd/main.go
-	mv ./main ~/go/bin/wig
+	go build -o wig cmd/main.go
+	mv ./wig ~/go/bin
 	
 build-run:
 	export GOEXPERIMENT=greenteagc
