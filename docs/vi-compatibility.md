@@ -17,7 +17,7 @@ The full list of default bindings is in `config/config.go` (`DefaultKeyMap`).
 | `+` / `-` / `Enter` | first non-blank of next / previous / next line |
 | `e` | end of word |
 | `W` / `B` / `E` | next / previous / end of WORD (whitespace-delimited) |
-| `Backspace` / `Delete` | one character back, wrapping to the previous line (normal mode) |
+| `Backspace` | one character back, wrapping to the previous line (normal mode) |
 | `{count}G` | go to line N (`G` alone still goes to the last line) |
 | `0` | column zero, even with counts enabled (it only extends a count after another digit) |
 | `z.` / `zz` | center the cursor line |
@@ -32,6 +32,7 @@ selection.
 
 | Key | Action |
 |-----|--------|
+| `Delete` | delete the character under the cursor (same as `x`) |
 | `C` / `D` / `S` / `Y` | change to end of line / delete to end of line / change line / yank line |
 | `I` | insert at the first non-blank character |
 | `s` | substitute character |
@@ -84,11 +85,11 @@ is built.
 - `'` and `` ` `` open a marks popup (press the mark's letter to jump) instead
   of jumping to a mark directly. `y'a`, `d'a`, `` c`a `` and the like do take a
   mark letter directly.
-- `Backspace` moves back one character, and so does the forward-delete key
-  (`Delete`; vi's `Delete` deletes the character under the cursor). On a Mac
-  keyboard the key labelled "delete" sends a backspace code, so it is the
-  `Backspace` binding that you normally hit; the forward-delete key is `fn+delete`.
-  These are normal-mode bindings only.
+- `Backspace` moves back one character, wrapping to the previous line, as in
+  vi. On a Mac keyboard the key labelled "delete" sends a backspace code, so
+  that is the key that moves back; the forward-delete key (`fn+delete`) is
+  `Delete`, which deletes the character under the cursor like `x`. Both are
+  normal-mode bindings only.
 - `.` replays the last recorded key sequence (the macro system), not a
   structured "last change".
 

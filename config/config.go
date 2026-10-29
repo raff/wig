@@ -229,7 +229,7 @@ func DefaultKeyMap() wig.ModeKeyMap {
 			"Enter":      wig.CmdNextLineFirstNonBlank,
 			"Backspace":  wig.CmdCursorBackward,
 			"Backspace2": wig.CmdCursorBackward,
-			"Delete":     wig.CmdCursorBackward,
+			"Delete":     wig.CmdDeleteCharForward,
 
 			"c": wig.KeyMap{
 				"$": wig.CmdChangeEndOfLine,
