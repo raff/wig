@@ -108,7 +108,9 @@ func (k *KeyHandler) HandleKey(editor *Editor, ev *tcell.EventKey, mode Mode) {
 		keySet = v
 	default:
 		if mode != MODE_INSERT && k.EnableTimes {
-			kv := isNumeric(key)
+			// "0" starts a count only after another digit, otherwise it's the
+			// go-to-column-zero motion
+			kv := isNumeric(key) && (key != "0" || len(k.times) > 0)
 			if kv {
 				k.times = append(k.times, key)
 				return

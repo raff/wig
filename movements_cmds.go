@@ -254,6 +254,9 @@ func CmdGotoLineEndOfFile(ctx Context) {
 	defer CmdEnsureCursorVisible(ctx)
 	ctx.Editor.ActiveWindow().Jumps.Push(ctx.Buf, cur)
 	cur.Line = ctx.Buf.Lines.Len - 1
+	if ctx.Count > 0 { // {count}G goes to that line
+		cur.Line = min(int(ctx.Count)-1, ctx.Buf.Lines.Len-1)
+	}
 	ctx.Editor.ActiveWindow().Jumps.Push(ctx.Buf, cur)
 }
 
