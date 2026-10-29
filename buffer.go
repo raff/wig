@@ -3,6 +3,7 @@ package wig
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"os"
 	"strings"
 )
@@ -171,6 +172,39 @@ func ReloadBufferContent(ctx Context, content string) {
 	}
 }
 
+// EditForce implements :e!. It throws away unsaved changes and reloads the
+// buffer from disk. The reload is a single undo step, so u brings the changes
+// back.
+func EditForce(ctx Context) error {
+	buf := ctx.Buf
+	if buf.FilePath == "" {
+		return errors.New("No file name")
+	}
+	data, err := os.ReadFile(buf.FilePath)
+	if err != nil {
+		return err
+	}
+
+	buf.Selection = nil
+	// ReloadBufferContent keeps a final "\n" line of its own
+	ReloadBufferContent(ctx, strings.TrimSuffix(string(data), "\n"))
+	buf.UndoRedo.SavedAtPosition = buf.UndoRedo.Position
+	buf.Dirty = false
+
+	cur := ContextCursorGet(ctx)
+	cur.Line = min(cur.Line, max(buf.Lines.Len-1, 0))
+	if line := CursorLine(buf, cur); line != nil {
+		cur.Char = min(cur.Char, max(len(line.Value)-1, 0))
+	}
+	cur.PreserveCharPosition = cur.Char
+
+	if buf.Highlighter != nil {
+		buf.Highlighter.Build()
+	}
+	ctx.Editor.Events.Broadcast(EventBufferReloaded{Buf: buf})
+	return nil
+}
+
 func (buf *Buffer) SetMode(m Mode) {
 	buf.mode = m
 }
@@ -213,10 +247,16 @@ func (b *Buffer) Mode() Mode {
 }
 
 func (b *Buffer) Save() error {
-	f, err := os.Create(b.FilePath)
+	return b.SaveAs(b.FilePath)
+}
+
+// SaveAs writes the buffer contents to path. It doesn't change b.FilePath.
+func (b *Buffer) SaveAs(path string) error {
+	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	line := b.Lines.First()
 	for line != nil {
 		// temp check

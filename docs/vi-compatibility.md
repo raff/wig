@@ -64,6 +64,9 @@ as the pending operator's keymap doesn't bind that digit itself (so
 | Command | Action |
 |---------|--------|
 | `:e file` | edit a file; a file that doesn't exist opens as an empty new buffer with a `[New File]` message and is created on save |
+| `:e!` | discard unsaved changes and reload the file from disk (undoable with `u`) |
+| `:w file` | write a copy of the buffer to `file`; an unnamed buffer takes `file` as its name. `:w!` is the same as `:w` |
+| `:{N}` | go to line `N`; also `:$`, `:.`, `:+3`, `:-2`. A number past the end goes to the last line |
 | `:r file` | insert a file below the cursor line; an unreadable file reports an error |
 | `:r !cmd` | insert a command's output below the cursor line |
 | `:!cmd` | run a command in `$SHELL` and show the output (status line, or a floating window for multi-line output; the window closes with `Esc`) |
@@ -111,7 +114,7 @@ is built.
 
 **Ex commands and shell**
 - Only a fixed set of ex commands exist (`:w`, `:q`, `:q!`, `:wq`, `:bd`,
-  `:bn`, `:bp`, `:bl`, `:vs`, `:sp`, `:only`, `:close`, `:e`, `:r`, `:!` and a
+  `:bn`, `:bp`, `:bl`, `:vs`, `:sp`, `:only`, `:close`, `:e`, `:e!`, `:r`, `:!` and a
   few wig-specific ones). Anything else prints `Unknown command`.
 - A filter (`:{range}!cmd`) that fails (non-zero exit or timeout) leaves the
   buffer unchanged and shows the error on the status line. vi would replace the
@@ -162,10 +165,10 @@ Clear omissions from standard vi, roughly in order of how often they come up.
 - visual-block `A`, `c`, `r`, `o`, `$`
 
 **Ex commands**
-- `:N` (go to a line), `:w file`, `:x`, `:e!`
+- `:x`
 - `:s` substitute, `:g` and `:v`, `:d`, `:y`, `:m`, `:t`, `:normal`
 - `:set` and `:noh`
-- range prefixes for `:r` (`:5r file`) and `:w`
+- range prefixes for `:r` (`:5r file`) and `:w` (`:1,5w file`)
 - `%` / `#` expansion and `:!!` for shell commands
 
 **Windows**

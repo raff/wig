@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/firstrow/wig"
@@ -127,8 +128,10 @@ func (u *uiCommandLine) autocomplete() {
 	input := string(u.chBuf)
 	parts := strings.SplitN(input, " ", 2)
 
-	// File path completion for :e or :edit
-	if len(parts) == 2 && (parts[0] == "e" || parts[0] == "edit") {
+	// File path completion for :e, :w and :r
+	if len(parts) == 2 && (parts[0] == "e" || parts[0] == "e!" || parts[0] == "edit" ||
+		parts[0] == "w" || parts[0] == "w!" || parts[0] == "write" ||
+		parts[0] == "r" || parts[0] == "read") {
 		cmdPart := parts[0]
 		prefix := parts[1]
 
@@ -247,6 +250,13 @@ func (u *uiCommandLine) execute(cmd string) {
 		return
 	}
 
+	// :N, :$, :+3 ... go to a line
+	if isLineRange(cmd) {
+		u.e.PopUi()
+		u.gotoLine(cmd)
+		return
+	}
+
 	// :!cmd and :{range}!cmd
 	if i := strings.Index(cmd, "!"); i >= 0 && isLineRange(cmd[:i]) {
 		u.e.PopUi()
@@ -255,7 +265,26 @@ func (u *uiCommandLine) execute(cmd string) {
 	}
 
 	parts := strings.SplitN(cmd, " ", 2)
-	if len(parts) > 0 && (parts[0] == "e" || parts[0] == "edit") {
+	// :e! reloads the buffer from disk. :e! file is the same as :e file.
+	if len(parts) == 1 && parts[0] == "e!" {
+		u.e.PopUi()
+		if err := wig.EditForce(u.e.NewContext()); err != nil {
+			u.e.EchoMessage(err.Error())
+		}
+		return
+	}
+
+	// :w file writes a copy. A bare :w is a regular command, see below.
+	if len(parts) == 2 && (parts[0] == "w" || parts[0] == "w!" || parts[0] == "write") {
+		u.e.PopUi()
+		filePath := strings.TrimSpace(parts[1])
+		if err := wig.WriteTo(u.e.NewContext(), filePath); err != nil {
+			u.e.EchoMessage(fmt.Sprintf("Can't write %s: %v", filePath, err))
+		}
+		return
+	}
+
+	if len(parts) > 0 && (parts[0] == "e" || parts[0] == "e!" || parts[0] == "edit") {
 		u.e.PopUi()
 		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
 			u.e.EchoMessage("No file name")
@@ -334,6 +363,28 @@ func (u *uiCommandLine) Render(view wig.View) {
 
 func (u *uiCommandLine) Mode() wig.Mode {
 	return wig.MODE_INSERT
+}
+
+// gotoLine moves the cursor to the last line of a range such as 5, $ or +3.
+func (u *uiCommandLine) gotoLine(spec string) {
+	ctx := u.e.NewContext()
+	last := ctx.Buf.Lines.Len - 1
+
+	var line int
+	if n, err := strconv.Atoi(spec); err == nil {
+		// like vi, a number past the end goes to the last line and 0 to the first
+		line = min(max(n-1, 0), last)
+	} else {
+		_, to, err := wig.ParseLineRange(spec, wig.ContextCursorGet(ctx).Line, last)
+		if err != nil {
+			u.e.EchoMessage(err.Error())
+			return
+		}
+		line = to
+	}
+
+	ctx.Count = uint32(line + 1)
+	wig.CmdGotoLineEndOfFile(ctx)
 }
 
 // isLineRange reports whether s is empty or made only of range characters.

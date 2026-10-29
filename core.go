@@ -2,6 +2,7 @@ package wig
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
 	"strings"
 	"text/scanner"
@@ -409,6 +410,25 @@ func CmdSelectionDelete(ctx Context) {
 	}
 	yankSave(ctx)
 	SelectionDelete(ctx)
+}
+
+// WriteTo implements :w file. It writes a copy of the buffer to path and leaves
+// the buffer's own file alone, unless the buffer has no name yet, in which case
+// path becomes its name and it is saved normally.
+func WriteTo(ctx Context, path string) error {
+	if abs, err := filepath.Abs(path); err == nil {
+		path = abs
+	}
+	if ctx.Buf.FilePath == "" {
+		ctx.Buf.FilePath = path
+	}
+	if path == ctx.Buf.FilePath {
+		CmdSaveFile(ctx)
+	} else if err := ctx.Buf.SaveAs(path); err != nil {
+		return err
+	}
+	ctx.Editor.EchoMessage(fmt.Sprintf("%q written", path))
+	return nil
 }
 
 func CmdSaveFile(ctx Context) {
