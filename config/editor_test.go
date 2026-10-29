@@ -12,6 +12,7 @@ import (
 
 func TestEditing(t *testing.T) {
 	keys := wig.NewKeyHandler(DefaultKeyMap())
+	keys.EnableTimes = true
 	e := wig.NewEditor(
 		testutils.Viewport,
 		keys,

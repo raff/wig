@@ -153,6 +153,7 @@ func TestKeyTimes(t *testing.T) {
 		}
 	}
 	h := NewKeyHandler(testKeyMap())
+	h.EnableTimes = true
 	editor := NewEditor(
 		testutils.Viewport,
 		h,
