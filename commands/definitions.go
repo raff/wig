@@ -27,6 +27,9 @@ func init() {
 	wig.AllCommands["CmdDeleteLine"] = wig.CmdDefinition{Desc: "Delete line", Fn: wig.CmdDeleteLine}
 	wig.AllCommands["CmdGitHunkPreview"] = wig.CmdDefinition{Desc: "Preview git hunk", Fn: CmdGitHunkPreview}
 	wig.AllCommands["CmdMRUBufferPicker"] = wig.CmdDefinition{Desc: "MRU Buffer Picker", Fn: CmdMRUBufferPicker}
+	wig.AllCommands["CmdScrollUpPage"] = wig.CmdDefinition{Desc: "Scroll up one page", Fn: wig.CmdScrollUpPage}
+	wig.AllCommands["CmdScrollDownPage"] = wig.CmdDefinition{Desc: "Scroll down one page", Fn: wig.CmdScrollDownPage}
+	wig.AllCommands["CmdRedrawScreen"] = wig.CmdDefinition{Desc: "Redraw screen", Fn: wig.CmdRedrawScreen}
 	wig.AllCommands["CmdSetMark"] = wig.CmdDefinition{Desc: "Set mark", Fn: wig.CmdSetMark}
 	wig.AllCommands["CmdGotoMark"] = wig.CmdDefinition{Desc: "Go to mark", Fn: wig.CmdGotoMark}
 	wig.AllCommands["CmdJumpToggle"] = wig.CmdDefinition{Desc: "Toggle jump", Fn: wig.CmdJumpToggle}

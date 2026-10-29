@@ -6,7 +6,7 @@
 "ui.background" = { bg = "bg" }
 "ui.text" = "text"
 "ui.linenr" = { bg = "bg", fg = "line-fg" }
-"ui.linenr.selected" = { bg = "highlight-line", fg = "line-fg" }
+"ui.linenr.selected" = { bg = "highlight-line", fg = "text", modifiers = ["bold"] }
 "ui.selection" = { bg = "selection" }
 "ui.cursorline" = { bg = "highlight-line" }
 "ui.statusline" = { fg = "bg", bg = "text" }
