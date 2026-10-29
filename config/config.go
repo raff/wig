@@ -241,6 +241,12 @@ func DefaultKeyMap() wig.ModeKeyMap {
 				"i": wig.CmdChangeInsideBlock,
 				"f": wig.CmdChangeTo,
 				"t": wig.CmdChangeBefore,
+				"'": wig.CmdChangeLinesToMark,
+				"G": wig.CmdChangeToLastLine,
+				"g": wig.KeyMap{
+					"g": wig.CmdChangeToFirstLine,
+				},
+				"`": wig.CmdChangeToMark,
 			},
 			"d": wig.KeyMap{
 				"d": wig.CmdDeleteLine,
@@ -248,6 +254,12 @@ func DefaultKeyMap() wig.ModeKeyMap {
 				"f": wig.CmdDeleteTo,
 				"t": wig.CmdDeleteBefore,
 				"$": wig.CmdDeleteEndOfLine,
+				"'": wig.CmdDeleteLinesToMark,
+				"G": wig.CmdDeleteToLastLine,
+				"g": wig.KeyMap{
+					"g": wig.CmdDeleteToFirstLine,
+				},
+				"`": wig.CmdDeleteToMark,
 			},
 			">": wig.KeyMap{
 				">": wig.CmdIndentLine,
@@ -260,6 +272,12 @@ func DefaultKeyMap() wig.ModeKeyMap {
 				"$": wig.CmdYankEol,
 				"t": wig.CmdYankBeforeChar,
 				"f": wig.CmdYankToChar,
+				"'": wig.CmdYankLinesToMark,
+				"G": wig.CmdYankToLastLine,
+				"g": wig.KeyMap{
+					"g": wig.CmdYankToFirstLine,
+				},
+				"`": wig.CmdYankToMark,
 			},
 			"z": wig.KeyMap{
 				".": wig.CmdCursorCenter,

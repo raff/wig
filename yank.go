@@ -97,6 +97,10 @@ func CmdYankPut(ctx Context) {
 
 	v := ctx.Editor.Yanks.Last()
 	if v.Value.isLine {
+		if ctx.Buf.Selection == nil {
+			putLines(ctx, v.Value.val, false)
+			return
+		}
 		CmdCursorLineDown(ctx)
 		CmdYankPutBefore(ctx)
 		return
@@ -115,6 +119,10 @@ func CmdYankPutBefore(ctx Context) {
 	}
 	if ctx.Editor.Yanks.Last().Value.isBlock {
 		blockPut(ctx, true)
+		return
+	}
+	if v := ctx.Editor.Yanks.Last().Value; v.isLine && ctx.Buf.Selection == nil {
+		putLines(ctx, v.val, true)
 		return
 	}
 	cur := ContextCursorGet(ctx)
@@ -136,6 +144,39 @@ func CmdYankPutBefore(ctx Context) {
 	} else {
 		yankPut(ctx)
 	}
+}
+
+// putLines pastes a linewise register below (or above) the cursor line, {count}
+// times, and leaves the cursor on the first pasted line.
+func putLines(ctx Context, text string, above bool) {
+	// the visual-line replace path arrives here still in insert mode
+	if ctx.Buf.Mode() == MODE_INSERT {
+		defer CmdExitInsertMode(ctx)
+	}
+	if ctx.Buf.TxStart() {
+		defer ctx.Buf.TxEnd()
+	}
+	if !strings.HasSuffix(text, "\n") {
+		text += "\n"
+	}
+	text = strings.Repeat(text, int(max(ctx.Count, 1)))
+
+	cur := ContextCursorGet(ctx)
+	line := CursorLine(ctx.Buf, cur)
+	switch {
+	case above:
+		TextInsert(ctx.Buf, line, 0, text)
+	case line.Next() != nil:
+		TextInsert(ctx.Buf, line.Next(), 0, text)
+		cur.Line++
+	default:
+		// last line: there's no next line to insert before, so append after it
+		TextInsert(ctx.Buf, line, len(line.Value)-1, "\n"+strings.TrimSuffix(text, "\n"))
+		cur.Line++
+	}
+	cur.Char = 0
+	CmdCursorFirstNonBlank(ctx)
+	CmdEnsureCursorVisible(ctx)
 }
 
 func yankSave(ctx Context, text ...string) {

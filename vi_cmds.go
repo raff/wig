@@ -1,7 +1,10 @@
 // Standard vi motions and edits
 package wig
 
-import "unicode"
+import (
+	"strings"
+	"unicode"
+)
 
 func scrollHalfPage(ctx Context, dir int) {
 	cur := ContextCursorGet(ctx)
@@ -262,3 +265,218 @@ func CmdCursorBackward(ctx Context) {
 		}
 	}
 }
+
+// markFromCtx returns the mark named by ctx.Char, if it's set in the current buffer.
+func markFromCtx(ctx Context) (Mark, bool) {
+	name := strings.TrimPrefix(ctx.Char, "shift+")
+	if name == "" {
+		return Mark{}, false
+	}
+	win := ctx.Win
+	if win == nil {
+		win = ctx.Editor.ActiveWindow()
+	}
+	var m Mark
+	ok := false
+	if win != nil {
+		m, ok = win.Marks[[]rune(name)[0]]
+	}
+	if !ok || (m.Buf != nil && m.Buf != ctx.Buf) {
+		ctx.Editor.EchoMessage("Mark '" + name + "' not set")
+		return Mark{}, false
+	}
+	return m, true
+}
+
+// yankLinesTo yanks the whole lines from the cursor line to target (inclusive).
+func yankLinesTo(ctx Context, target int) {
+	cur := ContextCursorGet(ctx)
+	from, to := min(cur.Line, target), max(cur.Line, target)
+
+	var sb strings.Builder
+	line := CursorLineByNum(ctx.Buf, from)
+	for n := from; n <= to && line != nil; n++ {
+		sb.WriteString(line.Value.String())
+		line = line.Next()
+	}
+
+	ctx.Buf.Selection = nil
+	yankSave(ctx, sb.String())
+	if from < cur.Line {
+		cur.Line = from
+		restoreCharPosition(ctx.Buf, cur)
+		CmdEnsureCursorVisible(ctx)
+	}
+}
+
+// CmdYankLinesToMark yanks the lines from the cursor to a mark (y'a).
+func CmdYankLinesToMark(_ Context) func(Context) {
+	return func(ctx Context) {
+		if m, ok := markFromCtx(ctx); ok {
+			yankLinesTo(ctx, m.Cursor.Line)
+		}
+	}
+}
+
+// markCharSelection returns the selection from the cursor to a mark position.
+// The motion is exclusive, like vi's `a: it stops just before the later position.
+func markCharSelection(ctx Context, m Mark) (*Selection, bool) {
+	start, end := *ContextCursorGet(ctx), m.Cursor
+	if end.Line < start.Line || (end.Line == start.Line && end.Char < start.Char) {
+		start, end = end, start
+	}
+	if start.Line == end.Line && start.Char == end.Char {
+		return nil, false
+	}
+
+	if end.Char > 0 {
+		end.Char--
+	} else {
+		end.Line--
+		prev := CursorLineByNum(ctx.Buf, end.Line)
+		end.Char = max(len(prev.Value)-1, 0)
+	}
+
+	sel := &Selection{Start: start, End: end}
+	if SelectionToString(ctx.Buf, sel) == "" {
+		return nil, false
+	}
+	return sel, true
+}
+
+// CmdYankToMark yanks from the cursor to a mark position, exclusive (y`a).
+func CmdYankToMark(_ Context) func(Context) {
+	return func(ctx Context) {
+		m, ok := markFromCtx(ctx)
+		if !ok {
+			return
+		}
+		sel, ok := markCharSelection(ctx, m)
+		if !ok {
+			return
+		}
+		ctx.Buf.Selection = sel
+		yankSave(ctx, SelectionToString(ctx.Buf, sel))
+		ctx.Buf.Selection = nil
+		*ContextCursorGet(ctx) = sel.Start
+		CmdEnsureCursorVisible(ctx)
+	}
+}
+
+// linesSelection moves the cursor to the first line between the cursor and
+// target and selects the whole lines in visual-line mode.
+func linesSelection(ctx Context, target int) {
+	cur := ContextCursorGet(ctx)
+	from, to := min(cur.Line, target), max(cur.Line, target)
+	cur.Line = from
+	CmdVisualLineMode(ctx)
+	ctx.Buf.Selection.End.Line = to
+	ctx.Buf.Selection.End.Char = len(CursorLineByNum(ctx.Buf, to).Value) - 1
+}
+
+// deleteLinesTo deletes the whole lines from the cursor line to target (inclusive).
+func deleteLinesTo(ctx Context, target int) {
+	if ctx.Buf.TxStart() {
+		defer ctx.Buf.TxEnd()
+	}
+	linesSelection(ctx, target)
+	yankSave(ctx)
+	SelectionDelete(ctx)
+	CmdNormalMode(ctx)
+	CmdEnsureCursorVisible(ctx)
+}
+
+// CmdDeleteLinesToMark deletes the lines from the cursor to a mark (d'a).
+func CmdDeleteLinesToMark(_ Context) func(Context) {
+	return func(ctx Context) {
+		if m, ok := markFromCtx(ctx); ok {
+			deleteLinesTo(ctx, m.Cursor.Line)
+		}
+	}
+}
+
+// CmdDeleteToMark deletes from the cursor to a mark position, exclusive (d`a).
+func CmdDeleteToMark(_ Context) func(Context) {
+	return func(ctx Context) {
+		m, ok := markFromCtx(ctx)
+		if !ok {
+			return
+		}
+		sel, ok := markCharSelection(ctx, m)
+		if !ok {
+			return
+		}
+		if ctx.Buf.TxStart() {
+			defer ctx.Buf.TxEnd()
+		}
+		ctx.Buf.Selection = sel
+		yankSave(ctx)
+		SelectionDelete(ctx)
+		CmdEnsureCursorVisible(ctx)
+	}
+}
+
+// changeLinesTo replaces the lines from the cursor line to target with an
+// empty line and enters insert mode.
+func changeLinesTo(ctx Context, target int) {
+	linesSelection(ctx, target)
+	yankSave(ctx)
+
+	// keep the last line's newline so an empty line is left behind
+	ctx.Buf.Selection.End.Char--
+	CmdEnterInsertMode(ctx)
+	SelectionDelete(ctx)
+	CmdEnsureCursorVisible(ctx)
+}
+
+// CmdChangeLinesToMark replaces the lines from the cursor to a mark with an
+// empty line and enters insert mode (c'a).
+func CmdChangeLinesToMark(_ Context) func(Context) {
+	return func(ctx Context) {
+		if m, ok := markFromCtx(ctx); ok {
+			changeLinesTo(ctx, m.Cursor.Line)
+		}
+	}
+}
+
+// CmdChangeToMark deletes from the cursor to a mark position, exclusive, and
+// enters insert mode (c`a).
+func CmdChangeToMark(_ Context) func(Context) {
+	return func(ctx Context) {
+		m, ok := markFromCtx(ctx)
+		if !ok {
+			return
+		}
+		sel, ok := markCharSelection(ctx, m)
+		if !ok {
+			return
+		}
+		CmdEnterInsertMode(ctx)
+		ctx.Buf.Selection = sel
+		yankSave(ctx)
+		SelectionDelete(ctx)
+		CmdEnsureCursorVisible(ctx)
+	}
+}
+
+// lineMotionTarget is the line a G (or gg) motion goes to: the count-th line
+// if given, otherwise the last (or first) line.
+func lineMotionTarget(ctx Context, last bool) int {
+	if ctx.Count > 0 {
+		return min(int(ctx.Count)-1, ctx.Buf.Lines.Len-1)
+	}
+	if last {
+		return ctx.Buf.Lines.Len - 1
+	}
+	return 0
+}
+
+// dG, yG, cG and {count}G variants: linewise, to the end of file or line N.
+func CmdYankToLastLine(ctx Context)   { yankLinesTo(ctx, lineMotionTarget(ctx, true)) }
+func CmdDeleteToLastLine(ctx Context) { deleteLinesTo(ctx, lineMotionTarget(ctx, true)) }
+func CmdChangeToLastLine(ctx Context) { changeLinesTo(ctx, lineMotionTarget(ctx, true)) }
+
+// dgg, ygg, cgg and {count}gg variants: linewise, to the start of file or line N.
+func CmdYankToFirstLine(ctx Context)   { yankLinesTo(ctx, lineMotionTarget(ctx, false)) }
+func CmdDeleteToFirstLine(ctx Context) { deleteLinesTo(ctx, lineMotionTarget(ctx, false)) }
+func CmdChangeToFirstLine(ctx Context) { changeLinesTo(ctx, lineMotionTarget(ctx, false)) }

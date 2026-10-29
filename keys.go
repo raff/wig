@@ -105,6 +105,13 @@ func (k *KeyHandler) HandleKey(editor *Editor, ev *tcell.EventKey, mode Mode) {
 		cmdExec(v, ctx)
 		return
 	case KeyMap:
+		// counts after an operator (d3G, y2j), unless the submap binds the digit
+		if mode != MODE_INSERT && k.EnableTimes && isNumeric(key) && (key != "0" || len(k.times) > 0) {
+			if _, bound := v[key]; !bound {
+				k.times = append(k.times, key)
+				return
+			}
+		}
 		keySet = v
 	default:
 		if mode != MODE_INSERT && k.EnableTimes {
