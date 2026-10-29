@@ -484,8 +484,15 @@ func CmdChangeToFirstLine(ctx Context) { changeLinesTo(ctx, lineMotionTarget(ctx
 
 // ReadFileBelowCursor inserts the contents of a file below the cursor line (:r file).
 func ReadFileBelowCursor(ctx Context, path string) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
+	var data []byte
+	var err error
+	if cmdline, ok := strings.CutPrefix(path, "!"); ok { // :r !cmd
+		var out string
+		if out, err = RunShell(strings.TrimSpace(cmdline), ""); err != nil {
+			return err
+		}
+		data = []byte(out)
+	} else if data, err = os.ReadFile(path); err != nil {
 		return err
 	}
 	if len(data) == 0 {

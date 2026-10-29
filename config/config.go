@@ -279,6 +279,9 @@ func DefaultKeyMap() wig.ModeKeyMap {
 				},
 				"`": wig.CmdYankToMark,
 			},
+			"!": wig.KeyMap{
+				"!": ui.CmdFilterLineInit,
+			},
 			"z": wig.KeyMap{
 				".": wig.CmdCursorCenter,
 				"z": wig.CmdCursorCenter,

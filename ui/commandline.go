@@ -1,8 +1,10 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"sort"
 	"strings"
 
@@ -26,9 +28,23 @@ func (u *uiCommandLine) Plane() wig.RenderPlane {
 }
 
 func CmdLineInit(ctx wig.Context) {
+	cmdLineInit(ctx, "")
+}
+
+// CmdFilterLineInit opens the command line prefilled for filtering the current
+// line (!!), or {count} lines, through a shell command.
+func CmdFilterLineInit(ctx wig.Context) {
+	prefix := ".!"
+	if ctx.Count > 1 {
+		prefix = fmt.Sprintf(".,.+%d!", ctx.Count-1)
+	}
+	cmdLineInit(ctx, prefix)
+}
+
+func cmdLineInit(ctx wig.Context, prefix string) {
 	u := &uiCommandLine{
 		e:          ctx.Editor,
-		chBuf:      make([]rune, 0, 32),
+		chBuf:      append(make([]rune, 0, 32), []rune(prefix)...),
 		historyIdx: len(cmdHistory), // Start at the end of history
 		candidates: []string{},
 		candIdx:    -1,
@@ -231,6 +247,13 @@ func (u *uiCommandLine) execute(cmd string) {
 		return
 	}
 
+	// :!cmd and :{range}!cmd
+	if i := strings.Index(cmd, "!"); i >= 0 && isLineRange(cmd[:i]) {
+		u.e.PopUi()
+		u.runShell(strings.TrimSpace(cmd[:i]), strings.TrimSpace(cmd[i+1:]))
+		return
+	}
+
 	parts := strings.SplitN(cmd, " ", 2)
 	if len(parts) > 0 && (parts[0] == "e" || parts[0] == "edit") {
 		u.e.PopUi()
@@ -311,4 +334,62 @@ func (u *uiCommandLine) Render(view wig.View) {
 
 func (u *uiCommandLine) Mode() wig.Mode {
 	return wig.MODE_INSERT
+}
+
+// isLineRange reports whether s is empty or made only of range characters.
+func isLineRange(s string) bool {
+	return strings.Trim(s, " .$%,+-0123456789") == ""
+}
+
+// runShell handles :!cmd (show the output) and :{range}!cmd (filter lines).
+func (u *uiCommandLine) runShell(rng, cmdline string) {
+	if cmdline == "" {
+		u.e.EchoMessage("No shell command")
+		return
+	}
+	ctx := u.e.NewContext()
+
+	if rng != "" {
+		if ctx.Buf == nil {
+			u.e.EchoMessage("No buffer to filter")
+			return
+		}
+		cur := wig.ContextCursorGet(ctx)
+		from, to, err := wig.ParseLineRange(rng, cur.Line, ctx.Buf.Lines.Len-1)
+		if err == nil {
+			err = wig.FilterLines(ctx, from, to, cmdline)
+		}
+		if err != nil {
+			u.e.EchoMessage("Filter failed: " + err.Error())
+		}
+		return
+	}
+
+	out, err := wig.RunShell(cmdline, "")
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		out += fmt.Sprintf("\n[exit status %d]", exitErr.ExitCode())
+	} else if err != nil {
+		u.e.EchoMessage(err.Error())
+		return
+	}
+
+	out = strings.TrimRight(out, "\n")
+	switch {
+	case out == "":
+		u.e.EchoMessage("[done]")
+	case !strings.Contains(out, "\n"):
+		u.e.EchoMessage(out)
+	default:
+		buf := wig.NewBuffer()
+		buf.ResetLines()
+		buf.Append(out)
+		fw := NewFloatingWindow(u.e, buf, FloatingWindowOpts{
+			Width:  u.e.Config.FloatingWindowWidth,
+			Height: u.e.Config.FloatingWindowHeight,
+			Title:  "!" + cmdline,
+		})
+		u.e.PushUi(fw)
+		u.e.Redraw()
+	}
 }
