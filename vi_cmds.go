@@ -2,6 +2,7 @@
 package wig
 
 import (
+	"os"
 	"strings"
 	"unicode"
 )
@@ -480,3 +481,17 @@ func CmdChangeToLastLine(ctx Context) { changeLinesTo(ctx, lineMotionTarget(ctx,
 func CmdYankToFirstLine(ctx Context)   { yankLinesTo(ctx, lineMotionTarget(ctx, false)) }
 func CmdDeleteToFirstLine(ctx Context) { deleteLinesTo(ctx, lineMotionTarget(ctx, false)) }
 func CmdChangeToFirstLine(ctx Context) { changeLinesTo(ctx, lineMotionTarget(ctx, false)) }
+
+// ReadFileBelowCursor inserts the contents of a file below the cursor line (:r file).
+func ReadFileBelowCursor(ctx Context, path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	if len(data) == 0 {
+		return nil
+	}
+	ctx.Count = 0
+	putLines(ctx, string(data), false)
+	return nil
+}

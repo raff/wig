@@ -239,7 +239,7 @@ func (u *uiCommandLine) execute(cmd string) {
 			return
 		}
 		filePath := strings.TrimSpace(parts[1])
-		buf, err := u.e.OpenFile(filePath)
+		buf, err := u.e.OpenOrCreateFile(filePath)
 		if err != nil {
 			u.e.EchoMessage(fmt.Sprintf("Error opening %s: %v", filePath, err))
 			return
@@ -247,6 +247,19 @@ func (u *uiCommandLine) execute(cmd string) {
 		ctx := u.e.NewContext()
 		ctx.Buf = buf
 		u.e.ActiveWindow().VisitBuffer(ctx)
+		return
+	}
+
+	if len(parts) > 0 && (parts[0] == "r" || parts[0] == "read") {
+		u.e.PopUi()
+		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
+			u.e.EchoMessage("No file name")
+			return
+		}
+		filePath := strings.TrimSpace(parts[1])
+		if err := wig.ReadFileBelowCursor(u.e.NewContext(), filePath); err != nil {
+			u.e.EchoMessage(fmt.Sprintf("Can't read %s: %v", filePath, err))
+		}
 		return
 	}
 

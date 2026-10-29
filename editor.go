@@ -1,6 +1,9 @@
 package wig
 
 import (
+	"errors"
+	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -162,6 +165,11 @@ func (e *Editor) OpenFile(path string) (*Buffer, error) {
 		return nil, err
 	}
 
+	e.registerBuffer(buf)
+	return buf, nil
+}
+
+func (e *Editor) registerBuffer(buf *Buffer) {
 	e.Buffers = append(e.Buffers, buf)
 	e.Lsp.DidOpen(buf)
 
@@ -172,7 +180,25 @@ func (e *Editor) OpenFile(path string) (*Buffer, error) {
 
 	// Broadcast event so GitGutterManager calculates signs for newly opened file
 	e.Events.Broadcast(EventBufferReloaded{Buf: buf})
+}
 
+// OpenOrCreateFile is like OpenFile but, if the file doesn't exist, returns an
+// empty buffer for that path (the file is created when the buffer is saved).
+func (e *Editor) OpenOrCreateFile(path string) (*Buffer, error) {
+	if absPath, err := filepath.Abs(path); err == nil {
+		path = absPath
+	}
+	if _, err := os.Stat(path); !errors.Is(err, fs.ErrNotExist) {
+		return e.OpenFile(path)
+	}
+	if fbuf := e.BufferFindByFilePath(path, false); fbuf != nil {
+		return fbuf, nil
+	}
+
+	buf := NewBuffer()
+	buf.FilePath = path
+	e.registerBuffer(buf)
+	e.EchoMessage(fmt.Sprintf("%q [New File]", path))
 	return buf, nil
 }
 

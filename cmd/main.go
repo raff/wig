@@ -71,6 +71,7 @@ func main() {
 	if len(args) > 1 {
 		targetLine := -1
 		var openedFile string
+		var firstBuf *wig.Buffer
 
 		// Open all files provided as arguments, skipping line number args like +10
 		for _, arg := range args[1:] {
@@ -80,16 +81,21 @@ func main() {
 				}
 				continue
 			}
-			editor.OpenFile(arg)
-			if openedFile == "" {
+			buf, err := editor.OpenOrCreateFile(arg)
+			if err != nil {
+				editor.EchoMessage(err.Error())
+				continue
+			}
+			if firstBuf == nil {
+				firstBuf = buf
 				openedFile, _ = filepath.Abs(arg)
 			}
 		}
 
 		// If at least one file opened successfully, show the first one
-		if len(editor.Buffers) > 0 {
+		if firstBuf != nil {
 			ctx := wig.EditorInst.NewContext()
-			ctx.Buf = editor.Buffers[0]
+			ctx.Buf = firstBuf
 
 			if targetLine < 0 && openedFile != "" {
 				if entry, ok := posCache.Files[openedFile]; ok {
