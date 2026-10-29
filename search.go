@@ -74,10 +74,22 @@ func SearchPrev(ctx Context, pattern string) {
 
 var LastSearchPattern string
 
+// LastSearchBackward is true when the last search was started with "?".
+// n repeats in that direction and N reverses it.
+var LastSearchBackward bool
+
 func CmdSearchNext(ctx Context) {
+	if LastSearchBackward {
+		SearchPrev(ctx, LastSearchPattern)
+		return
+	}
 	SearchNext(ctx, LastSearchPattern)
 }
 
 func CmdSearchPrev(ctx Context) {
+	if LastSearchBackward {
+		SearchNext(ctx, LastSearchPattern)
+		return
+	}
 	SearchPrev(ctx, LastSearchPattern)
 }

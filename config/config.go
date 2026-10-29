@@ -217,6 +217,7 @@ func DefaultKeyMap() wig.ModeKeyMap {
 			"ctrl+j": ui.CmdEasyMotion,
 			":":      ui.CmdLineInit,
 			"/":      ui.CmdSearchPromptInit,
+			"?":      ui.CmdSearchPromptBackwardInit,
 			";":      commands.CmdBufferPicker,
 			"*":      commands.CmdSearchWordUnderCursor,
 			"q":      wig.CmdMacroRecord,

@@ -12,6 +12,8 @@ type uiSearchPrompt struct {
 	e      *wig.Editor
 	keymap *wig.KeyHandler
 	chBuf  []rune
+	// backward searches towards the start of the buffer ("?" instead of "/").
+	backward bool
 }
 
 func (u *uiSearchPrompt) Plane() wig.RenderPlane {
@@ -19,9 +21,18 @@ func (u *uiSearchPrompt) Plane() wig.RenderPlane {
 }
 
 func CmdSearchPromptInit(ctx wig.Context) {
+	searchPromptInit(ctx, false)
+}
+
+func CmdSearchPromptBackwardInit(ctx wig.Context) {
+	searchPromptInit(ctx, true)
+}
+
+func searchPromptInit(ctx wig.Context, backward bool) {
 	cmdLine := &uiSearchPrompt{
-		e:     ctx.Editor,
-		chBuf: []rune{},
+		e:        ctx.Editor,
+		chBuf:    []rune{},
+		backward: backward,
 	}
 
 	cmdLine.keymap = wig.NewKeyHandler(wig.ModeKeyMap{
@@ -69,6 +80,11 @@ func (u *uiSearchPrompt) insertCh(ctx wig.Context, ev *tcell.EventKey) {
 func (u *uiSearchPrompt) execute(cmd string) {
 	pat := strings.TrimSpace(cmd)
 	wig.LastSearchPattern = pat
+	wig.LastSearchBackward = u.backward
+	if u.backward {
+		wig.SearchPrev(u.e.NewContext(), pat)
+		return
+	}
 	wig.SearchNext(u.e.NewContext(), pat)
 }
 
@@ -84,7 +100,11 @@ func (u *uiSearchPrompt) Render(view wig.View) {
 	bg := strings.Repeat(" ", w)
 	view.SetContent(0, h, bg, st)
 
-	msg := fmt.Sprintf("search: %s%s", string(u.chBuf), string(tcell.RuneBlock))
+	label := "search"
+	if u.backward {
+		label = "search backward"
+	}
+	msg := fmt.Sprintf("%s: %s%s", label, string(u.chBuf), string(tcell.RuneBlock))
 	view.SetContent(0, h, msg, st)
 }
 

@@ -133,7 +133,7 @@ Clear omissions from standard vi, roughly in order of how often they come up.
 
 **Motions**
 - `;` and `,` to repeat the last `f`/`t`/`F`/`T` (needs a rebind of `;`)
-- `?` backward search and `#` word search backward
+- `#` word search backward
 - `(` / `)` sentence motions, `_`, `|`, `ge`, `gE`, `g_`
 - `ctrl+o` / `ctrl+i` jump list (wig uses `[[` and `]]`)
 - direct `'a` and `` `a `` jumps, and the automatic marks (`''`, `` `. ``, `'<`, `'>`)

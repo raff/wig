@@ -458,6 +458,7 @@ func CmdSearchWordUnderCursor(ctx wig.Context) {
 	pat := ""
 	defer func() {
 		wig.LastSearchPattern = pat
+		wig.LastSearchBackward = false
 		wig.SearchNext(ctx, pat)
 	}()
 
